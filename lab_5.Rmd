@@ -9,3 +9,75 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Objectives:
+
+- Getting counts for different groups
+- Use {lubridate} to parse dates
+- Find confidence intervals & do t-tests with t.test()
+- Heatmap with geom_tile()
+
+```{r, include = FALSE}
+# Attach packages
+
+library(tidyverse)
+library(here)
+library(janitor)
+
+```
+
+```{r}
+# Import Lobster Data
+
+lobster_abundance <-
+  read_csv(here::here("data", "lobster_abundance.csv"), 
+                              na = "-99999") %>%
+  clean_names()
+
+```
+
+Use dplyr::uncount() function to expand a frequency variable 
+
+```{r}
+lobster_tidy <- lobster_abundance %>%
+  tidyr::uncount(lobster_count)
+
+```
+
+Now each lobster has its own row. This is tidy format. 
+
+
+Let's look at this data a bunch of ways...aka exploratory data visualization
+```{r}
+ggplot(data = lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_jitter(aes(color = site),
+              width = 0.2,
+              alpha = 0.3)
+
+
+```
+Some of these have close to the same central tendency, CARP and IVEE have more outliers...
+
+```{r}
+ggplot(data = lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_violin(aes(color = site),
+              alpha = 0.3)
+
+ggplot(data = lobster_tidy, aes(x = size_mm)) +
+  geom_histogram(aes(fill = site)) +
+  facet_wrap(~site, scales = "free") #facet wrap seperates graphs instead of having them all overlap each other on the same coordinate plane, scales = free will adjust the axes scales for comparison based on visualization
+
+```
+Now we want to plot actual observation values against perfectly standard normal distrubtions to see how our data compares
+
+```{r}
+ggplot(data = lobster_tidy, aes(x = site, y = size_mm)) +
+  geom_violin(aes(color = site),
+              alpha = 0.3)
+
+ggplot(data = lobster_tidy, aes(sample = size_mm)) +
+  geom_qq() +
+  facet_wrap(~site, scales = "free")
+```
+We observe relativley linear results for AQUE. CARP is also rel. normally distributed but just a few outliers are there making it look strange on the high end. Same with IVEE...just some outliers, Vs. what Mohawk looked like in the histogram we surprisingly see a pretty linear outcome here and we can say with more confidence theres a normal distribution. NAPL is also displaying a normal distribution. So overal, the data is pretty normally distributed.
+
+
