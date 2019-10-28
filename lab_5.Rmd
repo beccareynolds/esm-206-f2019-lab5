@@ -81,3 +81,123 @@ ggplot(data = lobster_tidy, aes(sample = size_mm)) +
 We observe relativley linear results for AQUE. CARP is also rel. normally distributed but just a few outliers are there making it look strange on the high end. Same with IVEE...just some outliers, Vs. what Mohawk looked like in the histogram we surprisingly see a pretty linear outcome here and we can say with more confidence theres a normal distribution. NAPL is also displaying a normal distribution. So overal, the data is pretty normally distributed.
 
 
+Let's lubridate to parse dates and times
+
+add a new column using mutate() that contains my date as an actual date
+```{r}
+class(lobster_tidy$date)
+#R sees the dates as characters, we want to change this. use mdy because that's the order in which the dates are currently stored
+lobster_date <- lobster_tidy %>% 
+  mutate(
+    date_new = lubridate::mdy(date)
+  )
+class(lobster_date$date_new)
+```
+
+Now we'll parse the date column to get the different pieces like month and year seperated
+
+```{r}
+lobster_parse_date <- lobster_date %>%
+  mutate(
+    obs_month = lubridate::month(date_new, label = TRUE),
+    obs_year = lubridate::year(date_new)) # which makes a column containing the date as a number, but what if we want it in text? add label = TRUE
+  
+```
+
+Count lobsters by different groupings...
+
+?count()
+
+I want to count the number of lobsters by year and month
+
+```{r}
+
+lobster_ym <- lobster_parse_date %>%
+  count(obs_year, obs_month)
+
+lobster_ym
+
+lobster_ysite <- lobster_parse_date %>%
+  count(obs_year, site)
+
+lobster_ysite
+
+lobster_site <- lobster_parse_date %>%
+  count(site)
+  
+lobster_site
+
+#group_by + summarize + n()
+lobster_summary <- lobster_parse_date %>%
+  group_by(site) %>% 
+  summarize(
+    mean_size = mean(size_mm, na.rm = TRUE),
+    sd_size = sd(size_mm, na.rm = TRUE),
+    sample_n = n())
+
+lobster_summary
+
+
+```
+
+
+Let's look at some confidence intervals and t-tests
+
+use t.test() function to find confidence intervals and perform t-tests
+
+```{r}
+ivee_lobsters <- lobster_tidy %>%
+  filter(site == "IVEE") %>%
+  pull(size_mm)
+
+t.test(ivee_lobsters)
+
+# What we just did is pretty much the safe way of doing the following, then we performed a t-test on it
+my_vector <- c(3, 5, 9, 15, 24)
+  
+
+```
+
+
+two sample t-test:
+is there a significnt difference in mean lobster ranks between naples reef and mohawk reef?
+```{r}
+
+napl_sample <- lobster_tidy %>% 
+  filter(site == "NAPL") %>% 
+  pull(size_mm)
+
+mohk_sample <- lobster_tidy %>% 
+  filter(site == "MOHK") %>% 
+  pull(size_mm)
+
+mohk_napl_ttest <- t.test(napl_sample, mohk_sample)
+mohk_napl_ttest
+
+```
+
+?t.test
+
+#scroll down in ?t.test help doc and look at value for more info
+
+Mean Lobster size differed significantly between mohawk and naples reefs (t(`r mohk_napl_ttest$parameter`) = 19.849)...
+
+Maybe an easier way...
+```{r}
+lobster_2sample <- lobster_tidy %>% 
+  filter(site %in% c("NAPL", "MOHK"))
+
+ttest_2 <- t.test(size_mm ~ site, data = lobster_2sample)
+
+```
+
+
+
+Make a geom_tile heatmap using lobster_ysite df
+```{r}
+
+ggplot(data = lobster_ysite, aes(x = obs_year, y = site)) +
+  geom_tile(aes(fill = n))
+
+```
+
